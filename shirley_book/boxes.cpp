@@ -15,4 +15,5 @@ int main2() {
             std::cout << ir << " " << ig << " " << ib << "\n";
         }
     }
+	return 0;
 }

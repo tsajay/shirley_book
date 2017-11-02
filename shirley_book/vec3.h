@@ -5,6 +5,11 @@
 #include <stdlib.h>
 #include <iostream>
 
+inline double rand_0_1() {
+	return (double)rand() / (RAND_MAX + 1);
+}
+
+
 class vec3  {
 
 
