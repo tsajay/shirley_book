@@ -1,16 +1,22 @@
-#define RT_W_H_AA 0
-#if RT_W_H_AA
 #include <iostream>
 #include "hitable_sphere.h"
 #include "hitable_list.h"
 #include "camera.h"
+#include "material.h"
 #include <limits>
 
 
-vec3 circle_color(const ray& r, hitable *world) {
+vec3 color(const ray& r, hitable *world, int depth) {
 	hit_record rec;
-	if (world->hit(r, 0.0, std::numeric_limits<float>::max(), rec)) {
-		return 0.5 * vec3(rec.normal.x() + 1, rec.normal.y() + 1, rec.normal.z() + 1);
+	if (world->hit(r, 0.001, std::numeric_limits<float>::max(), rec)) {
+		ray scattered;
+		vec3 attenuation;
+		if (depth < 50 && rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
+			return attenuation*color(scattered, world, depth + 1);
+		}
+		else {
+			return vec3(0, 0, 0);
+		}
 	}
 	else {
 		vec3 unit_dir = unit_vector(r.direction());
@@ -22,18 +28,21 @@ vec3 circle_color(const ray& r, hitable *world) {
 int main(int argc, char **argv) {
 	int nx = 200;
 	int ny = 100;
-	int ns = 1;
+	int ns = 100;
 	vec3 lower_left_corner(-2.0, -1.0, -1.0);
 	vec3 horizontal(4.0, 0.0, 0.0);
 	vec3 vertical(0.0, 2.0, 0.0);
 	vec3 origin(0.0, 0.0, 0.0);
 	std::cout << "P3\n" << nx << " " << ny << "\n255\n";
-	hitable *list[2];
-	vec3 sphere0_center(0.0, 0.0, -1.0);
-	list[0] = new sphere(sphere0_center, 0.5);
-	list[1] = new sphere(vec3(0.0, -100.5, -1), 100);
+	hitable *list[5];
+	
+	list[0] = new sphere(vec3(0.0, 0.0, -1.0), 0.5, new lambertian(vec3(0.1, 0.2, 0.5)));
+	list[1] = new sphere(vec3(0.0, -100.5, -1), 100, new lambertian(vec3(0.8, 0.8, 0.0)));
+	list[2] = new sphere(vec3(1.0, 0, -1), 0.5, new metal(vec3(0.8, 0.6, 0.2)));
+	list[3] = new sphere(vec3(-1.0, 0, -1), 0.5, new dielectric(1.5));
+	list[4] = new sphere(vec3(-1.0, 0, -1), -0.45, new dielectric(1.5));
 
-	hitable *world = new hitable_list(list, 2);
+	hitable *world = new hitable_list(list, 5);
 	camera cam;
 	//camera(vec3 lookfrom, vec3 lookat, vec3 vup, float vfov, float aspect, float aperture, float focus_dist)
 	//camera cam(origin, sphere0_center, vertical, );
@@ -45,7 +54,7 @@ int main(int argc, char **argv) {
 				float v = float(j + rand_0_1()) / float(ny);
 				ray r = cam.get_ray(u, v);
 				vec3 p = r.point_at_parameter(2.0);
-				col += circle_color(r, world);
+				col += color(r, world, 0);
 			}
 			col /= float(ns);
 			int ir = int(255.99 * col[0]);
@@ -55,4 +64,3 @@ int main(int argc, char **argv) {
 		}
 	}
 }
-#endif
